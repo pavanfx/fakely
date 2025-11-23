@@ -7,10 +7,35 @@ interface Props {
   messages: Message[];
   themName: string;
   themPhoto?: string;
+  onSendMessage?: (text: string) => void;
+  isTyping?: boolean;
 }
 
-export const InstagramUI: React.FC<Props> = ({ messages, themName, themPhoto }) => {
+export const InstagramUI: React.FC<Props> = ({ messages, themName, themPhoto, onSendMessage, isTyping }) => {
   const avatarSrc = themPhoto || `https://picsum.photos/seed/${themName}/100`;
+  const [inputValue, setInputValue] = React.useState('');
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  React.useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  const handleSend = () => {
+    if (inputValue.trim() && onSendMessage) {
+      onSendMessage(inputValue.trim());
+      setInputValue('');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSend();
+    }
+  };
 
   return (
     <div className="w-full h-full bg-white flex flex-col font-sans text-black overflow-hidden relative">
@@ -22,14 +47,16 @@ export const InstagramUI: React.FC<Props> = ({ messages, themName, themPhoto }) 
         <div className="flex items-center gap-3">
           <ChevronLeft size={28} className="text-black -ml-2" />
           <div className="flex items-center gap-2">
-            <img 
-              src={avatarSrc} 
-              alt="Avatar" 
+            <img
+              src={avatarSrc}
+              alt="Avatar"
               className="w-8 h-8 rounded-full object-cover border border-gray-200"
             />
             <div>
               <p className="text-sm font-semibold leading-tight">{themName}</p>
-              <p className="text-xs text-gray-400 leading-tight">Active now</p>
+              <p className="text-xs text-gray-400 leading-tight">
+                {isTyping ? 'Typing...' : 'Active now'}
+              </p>
             </div>
           </div>
         </div>
@@ -44,22 +71,22 @@ export const InstagramUI: React.FC<Props> = ({ messages, themName, themPhoto }) 
         <div className="flex justify-center mb-4">
           <span className="text-xs text-gray-400 font-medium">Today 9:41 AM</span>
         </div>
-        
+
         {messages.map((msg) => {
           const isMe = msg.sender === 'me';
           return (
             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start items-end gap-2'}`}>
               {!isMe && (
-                 <img 
-                 src={avatarSrc} 
-                 alt="Avatar" 
-                 className="w-7 h-7 rounded-full object-cover mb-1"
-               />
+                <img
+                  src={avatarSrc}
+                  alt="Avatar"
+                  className="w-7 h-7 rounded-full object-cover mb-1"
+                />
               )}
-              <div 
+              <div
                 className={`max-w-[70%] px-4 py-2.5 text-[15px] leading-snug
-                  ${isMe 
-                    ? 'bg-gray-100 text-black rounded-3xl rounded-br-md' 
+                  ${isMe
+                    ? 'bg-gray-100 text-black rounded-3xl rounded-br-md'
                     : 'bg-white border border-gray-200 text-black rounded-3xl rounded-bl-md'
                   }
                 `}
@@ -70,28 +97,50 @@ export const InstagramUI: React.FC<Props> = ({ messages, themName, themPhoto }) 
             </div>
           );
         })}
-         <div className="flex justify-end mt-1 px-1">
-            <span className="text-[10px] text-gray-400 font-medium">Seen</span>
-         </div>
+
+        {isTyping && (
+          <div className="flex justify-start items-end gap-2">
+            <img
+              src={avatarSrc}
+              alt="Avatar"
+              className="w-7 h-7 rounded-full object-cover mb-1"
+            />
+            <div className="bg-white border border-gray-200 text-black rounded-3xl rounded-bl-md px-4 py-3">
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end mt-1 px-1">
+          <span className="text-[10px] text-gray-400 font-medium">Seen</span>
+        </div>
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Footer */}
       <div className="px-3 py-3 flex items-center gap-3 bg-white">
         <div className="bg-gray-100 flex-1 rounded-full h-11 flex items-center px-1 relative">
-            <div className="bg-blue-500 p-1.5 rounded-full ml-1">
-                <Camera size={18} className="text-white" />
-            </div>
-            <input 
-                type="text" 
-                placeholder="Message..." 
-                className="bg-transparent border-none outline-none text-sm ml-2 flex-1 placeholder-gray-500"
-                disabled
-            />
-             <div className="flex items-center gap-3 mr-3 text-gray-800">
-                <Mic size={22} />
-                <ImageIcon size={22} />
-                <Heart size={22} />
-             </div>
+          <div className="bg-blue-500 p-1.5 rounded-full ml-1">
+            <Camera size={18} className="text-white" />
+          </div>
+          <input
+            type="text"
+            placeholder="Message..."
+            className="bg-transparent border-none outline-none text-sm ml-2 flex-1 placeholder-gray-500"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={!onSendMessage}
+          />
+          <div className="flex items-center gap-3 mr-3 text-gray-800">
+            <Mic size={22} />
+            <ImageIcon size={22} />
+            <Heart size={22} />
+          </div>
         </div>
       </div>
     </div>

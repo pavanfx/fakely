@@ -35,7 +35,8 @@ export const generateConversation = async (
   - 'Ex': Nostalgic, bitter, "miss you" texts at 2am, or awkward reconnecting.
   - 'Gossip': Sharing secrets, "did you hear about...", shocked reactions.
   
-  Ensure the conversation flows naturally and feels authentic to the selected theme and platform.`;
+  Ensure the conversation flows naturally and feels authentic to the selected theme and platform.
+  IMPORTANT: The conversation MUST end with a message from 'them'.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -86,6 +87,65 @@ export const generateConversation = async (
     return [
       { id: 'err1', sender: 'them', content: 'Hey, did you get my message?', time: 'Now' },
       { id: 'err2', sender: 'me', content: 'Sorry, connection error. Try again!', time: 'Now' },
+      { id: 'err3', sender: 'them', content: 'No worries!', time: 'Now' },
     ];
+  }
+};
+
+export const generateReply = async (
+  app: AppType,
+  theme: ThemeType,
+  history: Message[],
+  userMessage: string
+): Promise<Message> => {
+  const systemInstruction = `You are roleplaying as 'them' in a chat on ${app}. 
+  The theme of the chat is '${theme}'.
+  The user ('me') just sent a message: "${userMessage}".
+  
+  Your goal is to reply with a POSITIVE attitude, regardless of the previous mood.
+  You should act like you LIKED the last message from 'me'.
+  Keep the reply short and consistent with the platform style (${app}).
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `Generate a reply to "${userMessage}"`,
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            content: {
+              type: Type.STRING,
+            },
+            time: {
+              type: Type.STRING,
+            },
+          },
+          required: ["content"],
+        },
+      },
+    });
+
+    if (response.text) {
+      const data = JSON.parse(response.text);
+      return {
+        id: `msg-reply-${Date.now()}`,
+        sender: 'them',
+        content: data.content,
+        time: data.time || 'Now',
+      };
+    }
+    throw new Error("No response text");
+  } catch (error) {
+    console.error("Error generating reply:", error);
+    return {
+      id: `err-reply-${Date.now()}`,
+      sender: 'them',
+      content: 'Haha, nice one! ❤️',
+      time: 'Now',
+    };
   }
 };
